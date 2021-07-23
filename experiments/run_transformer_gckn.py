@@ -19,10 +19,6 @@ from transformer.utils import count_parameters
 from timeit import default_timer as timer
 from torch import nn, optim
 
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-
 
 def load_args():
     parser = argparse.ArgumentParser(

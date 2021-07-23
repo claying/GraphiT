@@ -18,10 +18,6 @@ from transformer.utils import count_parameters
 from timeit import default_timer as timer
 from torch import nn, optim
 
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-
 
 def load_args():
     parser = argparse.ArgumentParser(
@@ -55,6 +51,7 @@ def load_args():
     parser.add_argument('--warmup', type=int, default=2000)
     parser.add_argument('--layer-norm', action='store_true', help='use layer norm instead of batch norm')
     parser.add_argument('--zero-diag', action='store_true', help='zero diagonal for PE matrix')
+    parser.add_argument('--use-edge-attr', action='store_true', help='use edge features')
     args = parser.parse_args()
     args.use_cuda = torch.cuda.is_available()
     args.batch_norm = not args.layer_norm
@@ -82,6 +79,13 @@ def load_args():
                 pass
         if args.zero_diag:
             outdir = outdir + '/zero_diag'
+            if not os.path.exists(outdir):
+                try:
+                    os.makedirs(outdir)
+                except Exception:
+                    pass
+        if args.use_edge_attr:
+            outdir = outdir + '/edge_attr'
             if not os.path.exists(outdir):
                 try:
                     os.makedirs(outdir)
@@ -206,6 +210,7 @@ def main():
     data_path = '../dataset/ZINC'
     # number of node attributes for ZINC dataset
     n_tags = 28
+    num_edge_features = 4
 
     train_dset = GraphDataset(datasets.ZINC(data_path, subset=True, split='train'), n_tags, degree=True)
     input_size = train_dset.input_size()
@@ -222,21 +227,27 @@ def main():
         pos_encoding_params_str = ""
         if args.pos_enc == 'diffusion':
             pos_encoding_params = {
-                'beta': args.beta
+                'beta': args.beta,
+                'use_edge_attr': args.use_edge_attr,
+                'num_edge_features': num_edge_features
             }
-            pos_encoding_params_str = args.beta
+            pos_encoding_params_str = "{}_{}".format(args.beta, args.use_edge_attr)
         elif args.pos_enc == 'pstep':
             pos_encoding_params = {
                 'beta': args.beta,
-                'p': args.p
+                'p': args.p,
+                'use_edge_attr': args.use_edge_attr,
+                'num_edge_features': num_edge_features
             }
-            pos_encoding_params_str = "{}_{}".format(args.p, args.beta)
+            pos_encoding_params_str = "{}_{}_{}".format(args.p, args.beta, args.use_edge_attr)
         else:
             pos_encoding_params = {}
 
         if pos_encoding_method is not None:
             pos_cache_path = '../cache/pe/zinc_{}_{}_{}.pkl'.format(args.pos_enc, args.normalization, pos_encoding_params_str)
-            pos_encoder = pos_encoding_method(pos_cache_path, normalization=args.normalization, zero_diag=args.zero_diag, **pos_encoding_params)
+            pos_encoder = pos_encoding_method(
+                pos_cache_path, normalization=args.normalization,
+                zero_diag=args.zero_diag, **pos_encoding_params)
 
         print("Position encoding...")
         pos_encoder.apply_to(train_dset, split='train')

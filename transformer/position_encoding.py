@@ -2,6 +2,7 @@ import os
 import pickle
 
 import torch
+import torch.nn.functional as F
 from torch_geometric.utils import get_laplacian, to_scipy_sparse_matrix, to_dense_adj
 import numpy as np
 import scipy.sparse as sp
@@ -53,7 +54,7 @@ class PositionEncoding(object):
 
 
 class DiffusionEncoding(PositionEncoding):
-    def __init__(self, savepath, beta=1., use_edge_attr=False, normalization=None, zero_diag=False):
+    def __init__(self, savepath, beta=1., use_edge_attr=False, normalization=None, zero_diag=False, num_edge_features=4):
         """
         normalization: for Laplacian None. sym or rw
         """
@@ -61,31 +62,54 @@ class DiffusionEncoding(PositionEncoding):
         self.beta = beta
         self.normalization = normalization
         self.use_edge_attr = use_edge_attr
+        self.num_edge_features = num_edge_features
 
     def compute_pe(self, graph):
-        edge_attr = graph.edge_attr if self.use_edge_attr else None
-        edge_index, edge_attr = get_laplacian(
-                graph.edge_index, edge_attr, normalization=self.normalization,
-                num_nodes=graph.num_nodes)
-        L = to_scipy_sparse_matrix(edge_index, edge_attr).tocsc()
+        if self.use_edge_attr:
+            edge_attr_list = F.one_hot(graph.edge_attr - 1, self.num_edge_features).float()
+            L = 0
+            for i in range(self.num_edge_features):
+                L_i = self.compute_pe_from_edge_weight(
+                    graph.edge_index, edge_attr_list[:, i], graph.num_nodes)
+                L += L_i
+            L /= self.num_edge_features
+            return L
+        return self.compute_pe_from_edge_weight(graph.edge_index, None, graph.num_nodes)
+
+    def compute_pe_from_edge_weight(self, edge_index, edge_weight, num_nodes):
+        edge_index, edge_weight = get_laplacian(
+                edge_index, edge_weight, normalization=self.normalization,
+                num_nodes=num_nodes)
+        L = to_scipy_sparse_matrix(edge_index, edge_weight).tocsc()
         L = expm(-self.beta * L)
         return torch.from_numpy(L.toarray())
 
 
 class PStepRWEncoding(PositionEncoding):
-    def __init__(self, savepath, p=1, beta=0.5, use_edge_attr=False, normalization=None, zero_diag=False):
+    def __init__(self, savepath, p=1, beta=0.5, use_edge_attr=False, normalization=None, zero_diag=False, num_edge_features=4):
         super().__init__(savepath, zero_diag)
         self.p = p
         self.beta = beta
         self.normalization = normalization
         self.use_edge_attr = use_edge_attr
+        self.num_edge_features = num_edge_features
 
     def compute_pe(self, graph):
-        edge_attr = graph.edge_attr if self.use_edge_attr else None
-        edge_index, edge_attr = get_laplacian(
-            graph.edge_index, edge_attr, normalization=self.normalization,
-            num_nodes=graph.num_nodes)
-        L = to_scipy_sparse_matrix(edge_index, edge_attr).tocsc()
+        if self.use_edge_attr:
+            edge_attr_list = F.one_hot(graph.edge_attr - 1, self.num_edge_features).float()
+            L = 0
+            for i in range(self.num_edge_features):
+                L_i = self.compute_pe_from_edge_weight(
+                    graph.edge_index, edge_attr_list[:, i], graph.num_nodes)
+                L += L_i
+            return L
+        return self.compute_pe_from_edge_weight(graph.edge_index, None, graph.num_nodes)
+
+    def compute_pe_from_edge_weight(self, edge_index, edge_weight, num_nodes):
+        edge_index, edge_weight = get_laplacian(
+            edge_index, edge_weight, normalization=self.normalization,
+            num_nodes=num_nodes)
+        L = to_scipy_sparse_matrix(edge_index, edge_weight).tocsc()
         L = sp.identity(L.shape[0], dtype=L.dtype) - self.beta * L
         tmp = L
         for _ in range(self.p - 1):
