@@ -26,7 +26,7 @@ class PositionEncoding(object):
                 pe = saved_pos_enc[i]
             if self.zero_diag:
                 pe = pe.clone()
-                if hasattr(self, use_edge_attr) and self.use_edge_attr:
+                if hasattr(self, "use_edge_attr") and self.use_edge_attr:
                     pe.diagonal(dim1=1, dim2=2)[:] = 0
                 else:
                     pe.diagonal()[:] = 0
