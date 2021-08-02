@@ -84,8 +84,8 @@ class DiffGraphTransformer(nn.Module):
         #self.classifier = nn.Linear(in_features=d_model,
         #                            out_features=nb_class, bias=True)
         self.classifier = nn.Sequential(
-            nn.Linear(d_model, d_model),
-            nn.ReLU(True),
+            # nn.Linear(d_model, d_model),
+            # nn.ReLU(True),
             nn.Linear(d_model, nb_class)
             )
 
@@ -97,6 +97,7 @@ class DiffGraphTransformer(nn.Module):
                 nn.ReLU(True),
                 nn.Linear(num_edge_features, num_edge_features)
                 )
+            self.sum_pooling = GlobalSum1D()
 
     def forward(self, x, masks, pe, x_lap_pos_enc=None, degree=None):
         if self.use_edge_attr and pe.ndim == 4:
@@ -106,7 +107,7 @@ class DiffGraphTransformer(nn.Module):
             #     self.coef.data.copy_(coef)
             # pe = torch.tensordot(self.coef, pe, dims=[[0], [1]])
             coef = self.gating(x)
-            coef = self.pooling(coef, masks)
+            coef = self.sum_pooling(coef, masks)
             coef = coef.softmax(dim=-1)
             pe = pe * coef.view(coef.shape[0], coef.shape[1], 1, 1)
             pe = pe.sum(dim=1)
@@ -136,3 +137,14 @@ class GlobalAvg1D(nn.Module):
         mask = (~mask).float().unsqueeze(-1)
         x = x * mask
         return x.sum(dim=1) / mask.sum(dim=1)
+
+class GlobalSum1D(nn.Module):
+    def __init__(self):
+        super(GlobalSum1D, self).__init__()
+
+    def forward(self, x, mask=None):
+        if mask is None:
+            return x.sum(dim=1)
+        mask = (~mask).float().unsqueeze(-1)
+        x = x * mask
+        return x.sum(dim=1)
