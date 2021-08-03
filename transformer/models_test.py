@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import torch
 from torch import nn
-import torch.nn.functional as F
 from .layers import DiffTransformerEncoderLayer
 
 
@@ -92,24 +91,24 @@ class DiffGraphTransformer(nn.Module):
 
         self.use_edge_attr = use_edge_attr
         if use_edge_attr:
-            self.ref = nn.Parameter(torch.zeros((max_num_nodes, max_num_nodes)))
+            # self.ref = nn.Parameter(torch.zeros((max_num_nodes, max_num_nodes)))
             self.coef = nn.Parameter(torch.ones(num_edge_features) / num_edge_features)
             # self.sum_pooling = GlobalSum1D()
 
     def forward(self, x, masks, pe, x_lap_pos_enc=None, degree=None):
         if self.use_edge_attr and pe.ndim == 4:
-            # with torch.no_grad():
-            #     coef = self.coef.data.clamp(min=0)
-            #     coef /= coef.sum(dim=0, keepdim=True)
-            #     self.coef.data.copy_(coef)
-            # pe = torch.tensordot(self.coef, pe, dims=[[0], [1]])
-            pe_size = pe.shape[-1]
-            pe_weights = torch.tensordot(pe, self.ref[:pe_size, :pe_size], dims=[[-1], [0]])
-            pe_weights = pe_weights.diagonal(dim1=-2, dim2=-1).sum(-1) + self.coef.view(1, -1)
-            pe_weights = F.relu(pe_weights)
-            pe_weights = pe_weights / pe_weights.sum(dim=-1, keepdim=True)
-            pe = pe * pe_weights.view(pe_weights.shape[0], pe_weights.shape[1], 1, 1)
-            pe = pe.sum(dim=1)
+            with torch.no_grad():
+                coef = self.coef.data.clamp(min=0)
+                coef /= coef.sum(dim=0, keepdim=True)
+                self.coef.data.copy_(coef)
+            pe = torch.tensordot(self.coef, pe, dims=[[0], [1]])
+            # pe_size = pe.shape[-1]
+            # pe_weights = torch.tensordot(pe, self.ref[:pe_size, :pe_size], dims=[[-1], [0]])
+            # pe_weights = pe_weights.diagonal(dim1=-2, dim2=-1).sum(-1) + self.coef.view(1, -1)
+            # pe_weights = F.relu(pe_weights)
+            # pe_weights = pe_weights / pe_weights.sum(dim=-1, keepdim=True)
+            # pe = pe * pe_weights.view(pe_weights.shape[0], pe_weights.shape[1], 1, 1)
+            # pe = pe.sum(dim=1)
         # We permute the batch and sequence following pytorch
         # Transformer convention
         x = x.permute(1, 0, 2)

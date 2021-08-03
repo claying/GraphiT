@@ -52,6 +52,7 @@ def load_args():
     parser.add_argument('--layer-norm', action='store_true', help='use layer norm instead of batch norm')
     parser.add_argument('--zero-diag', action='store_true', help='zero diagonal for PE matrix')
     parser.add_argument('--use-edge-attr', action='store_true', help='use edge features')
+    parser.add_argument('--weight-decay', default=1e-4, type=float, help='weight decay')
     args = parser.parse_args()
     args.use_cuda = torch.cuda.is_available()
     args.batch_norm = not args.layer_norm
@@ -291,7 +292,7 @@ def main():
     print("Total number of parameters: {}".format(count_parameters(model)))
 
     criterion = nn.L1Loss()
-    optimizer = optim.Adam(model.parameters(), lr=args.lr)
+    optimizer = optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     if args.warmup is None:
         lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min',
                                                      factor=0.5,
