@@ -84,33 +84,33 @@ class DiffGraphTransformer(nn.Module):
         #self.classifier = nn.Linear(in_features=d_model,
         #                            out_features=nb_class, bias=True)
         self.classifier = nn.Sequential(
-            # nn.Linear(d_model, d_model),
-            # nn.ReLU(True),
+            nn.Linear(d_model, d_model),
+            nn.ReLU(True),
             nn.Linear(d_model, nb_class)
             )
 
         self.use_edge_attr = use_edge_attr
         if use_edge_attr:
-            # self.coef = nn.Parameter(torch.ones(num_edge_features) / num_edge_features)
-            self.gating = nn.Sequential(
-                nn.Linear(in_size, num_edge_features),
-                nn.ReLU(True),
-                nn.Linear(num_edge_features, num_edge_features)
-                )
-            self.sum_pooling = GlobalSum1D()
+            self.coef = nn.Parameter(torch.ones(num_edge_features) / num_edge_features)
+            # self.gating = nn.Sequential(
+            #     nn.Linear(in_size, num_edge_features),
+            #     nn.ReLU(True),
+            #     nn.Linear(num_edge_features, num_edge_features)
+            #     )
+            # self.sum_pooling = GlobalSum1D()
 
     def forward(self, x, masks, pe, x_lap_pos_enc=None, degree=None):
         if self.use_edge_attr and pe.ndim == 4:
-            # with torch.no_grad():
-            #     coef = self.coef.data.clamp(min=0)
-            #     coef /= coef.sum(dim=0, keepdim=True)
-            #     self.coef.data.copy_(coef)
-            # pe = torch.tensordot(self.coef, pe, dims=[[0], [1]])
-            coef = self.gating(x)
-            coef = self.sum_pooling(coef, masks)
-            coef = coef.softmax(dim=-1)
-            pe = pe * coef.view(coef.shape[0], coef.shape[1], 1, 1)
-            pe = pe.sum(dim=1)
+            with torch.no_grad():
+                coef = self.coef.data.clamp(min=0)
+                coef /= coef.sum(dim=0, keepdim=True)
+                self.coef.data.copy_(coef)
+            pe = torch.tensordot(self.coef, pe, dims=[[0], [1]])
+            # coef = self.gating(x)
+            # coef = self.sum_pooling(coef, masks)
+            # coef = coef.softmax(dim=-1)
+            # pe = pe * coef.view(coef.shape[0], coef.shape[1], 1, 1)
+            # pe = pe.sum(dim=1)
         # We permute the batch and sequence following pytorch
         # Transformer convention
         x = x.permute(1, 0, 2)
