@@ -147,6 +147,7 @@ def train_epoch(model, loader, criterion, optimizer, lr_scheduler, epoch, use_cu
         output = model(data, mask, pe, lap_pe, degree)
         loss = criterion(output, labels)
         loss.backward()
+        torch.nn.utils.clip_grad_norm_(model.parameters(), 5.0)
         optimizer.step()
 
         running_loss += loss.item() * len(data)
