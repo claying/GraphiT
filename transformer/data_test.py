@@ -43,14 +43,17 @@ class GraphDataset(object):
     def input_size(self):
         if self.n_tags is None:
             return self.n_features
-        return self.n_tags
+        if isinstance(self.n_tags, int):
+            return self.n_tags
+        return sum(self.n_tags)
 
     def one_hot(self):
         self.x_onehot = None
-        if self.n_tags is not None and self.n_tags > 1:
+        if self.n_tags is not None:
             self.x_onehot = []
             for g in self.dataset:
-                onehot = F.one_hot(g.x.view(-1).long(), self.n_tags)
+                # onehot = F.one_hot(g.x.view(-1).long(), self.n_tags)
+                onehot = atom_one_hot(g.x, self.n_tags)
                 self.x_onehot.append(onehot)
 
     def collate_fn(self):
@@ -58,11 +61,7 @@ class GraphDataset(object):
             batch = list(batch)
             max_len = max(len(g.x) for g in batch)
 
-            if self.n_tags is None:
-                padded_x = torch.zeros((len(batch), max_len, self.n_features))
-            else:
-                # discrete node attributes
-                padded_x = torch.zeros((len(batch), max_len, self.n_tags))
+            padded_x = torch.zeros((len(batch), max_len, self.input_size()))
             mask = torch.zeros((len(batch), max_len), dtype=bool)
             labels = []
 
@@ -94,7 +93,7 @@ class GraphDataset(object):
                 degree = torch.zeros((len(batch), max_len))
 
             for i, g in enumerate(batch):
-                labels.append(g.y)
+                labels.append(g.y.view(-1))
                 g_len = len(g.x)
 
                 if self.n_tags is None:
@@ -114,3 +113,13 @@ class GraphDataset(object):
 
             return padded_x, mask, pos_enc, lap_pos_enc, degree, default_collate(labels)
         return collate
+
+def atom_one_hot(nodes, num_atom_types):
+    if isinstance(num_atom_types, int):
+        return F.one_hot(nodes.view(-1).long(), num_atom_types)
+    all_one_hot_feat = []
+    for col in range(len(num_atom_types)):
+        one_hot_feat = F.one_hot(nodes[:, col], num_atom_types[col])
+        all_one_hot_feat.append(one_hot_feat)
+    all_one_hot_feat = torch.cat(all_one_hot_feat, dim=1)
+    return all_one_hot_feat

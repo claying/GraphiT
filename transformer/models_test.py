@@ -66,7 +66,7 @@ class DiffGraphTransformer(nn.Module):
     def __init__(self, in_size, nb_class, d_model, nb_heads,
                  dim_feedforward=2048, dropout=0.1, nb_layers=4,
                  batch_norm=False, lap_pos_enc=False, lap_pos_enc_dim=0,
-                 use_edge_attr=False, num_edge_features=4, max_num_nodes=37):
+                 use_edge_attr=False, num_edge_features=4):
         super(DiffGraphTransformer, self).__init__()
 
         self.lap_pos_enc = lap_pos_enc

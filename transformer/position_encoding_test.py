@@ -66,12 +66,17 @@ class DiffusionEncoding(PositionEncoding):
         self.normalization = normalization
         self.use_edge_attr = use_edge_attr
         self.num_edge_features = num_edge_features
+        if isinstance(num_edge_features, int):
+            self.num_edge_features_true = num_edge_features
+        else:
+            self.num_edge_features_true = sum(num_edge_features)
 
     def compute_pe(self, graph):
         if self.use_edge_attr:
-            edge_attr_list = F.one_hot(graph.edge_attr - 1, self.num_edge_features).float()
-            pe_tensors = torch.zeros((self.num_edge_features, graph.num_nodes, graph.num_nodes))
-            for i in range(self.num_edge_features):
+            # edge_attr_list = F.one_hot(graph.edge_attr - 1, self.num_edge_features).float()
+            edge_attr_list = edge_attr_one_hot(graph.edge_attr, self.num_edge_features)
+            pe_tensors = torch.zeros((self.num_edge_features_true, graph.num_nodes, graph.num_nodes))
+            for i in range(self.num_edge_features_true):
                 pe_i = self.compute_pe_from_edge_weight(
                     graph.edge_index, edge_attr_list[:, i], graph.num_nodes)
                 pe_tensors[i] = pe_i
@@ -95,12 +100,17 @@ class PStepRWEncoding(PositionEncoding):
         self.normalization = normalization
         self.use_edge_attr = use_edge_attr
         self.num_edge_features = num_edge_features
+        if isinstance(num_edge_features, int):
+            self.num_edge_features_true = num_edge_features
+        else:
+            self.num_edge_features_true = sum(num_edge_features)
 
     def compute_pe(self, graph):
         if self.use_edge_attr:
-            edge_attr_list = F.one_hot(graph.edge_attr - 1, self.num_edge_features).float()
-            pe_tensors = torch.zeros((self.num_edge_features, graph.num_nodes, graph.num_nodes))
-            for i in range(self.num_edge_features):
+            # edge_attr_list = F.one_hot(graph.edge_attr - 1, self.num_edge_features).float()
+            edge_attr_list = edge_attr_one_hot(graph.edge_attr, self.num_edge_features)
+            pe_tensors = torch.zeros((self.num_edge_features_true, graph.num_nodes, graph.num_nodes))
+            for i in range(self.num_edge_features_true):
                 pe_i = self.compute_pe_from_edge_weight(
                     graph.edge_index, edge_attr_list[:, i], graph.num_nodes)
                 pe_tensors[i] = pe_i
@@ -168,6 +178,19 @@ class LapEncoding(PositionEncoding):
 
         return dataset
 
+def edge_attr_one_hot(edge_attr, num_edge_features):
+    """one hot encoding for edge attributes
+    edge_attr: num_edges x edge_types
+    num_edge_features: int or list
+    """
+    if isinstance(num_edge_features, int):
+        return F.one_hot(edge_attr - 1, num_edge_features).float()
+    all_one_hot_feat = []
+    for col in range(len(num_edge_features)):
+        one_hot_feat = F.one_hot(edge_attr[:, col], num_edge_features[col])
+        all_one_hot_feat.append(one_hot_feat)
+    all_one_hot_feat = torch.cat(all_one_hot_feat, dim=1)
+    return all_one_hot_feat.float()
 
 POSENCODINGS = {
     "diffusion": DiffusionEncoding,
