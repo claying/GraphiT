@@ -163,7 +163,8 @@ class LapEncoding(PositionEncoding):
     def compute_pe(self, graph):
         edge_attr = graph.edge_attr if self.use_edge_attr else None
         edge_index, edge_attr = get_laplacian(
-            graph.edge_index, edge_attr, normalization=self.normalization)
+            graph.edge_index, edge_attr, normalization=self.normalization,
+            num_nodes=graph.num_nodes)
         L = to_scipy_sparse_matrix(edge_index, edge_attr).tocsc()
         EigVal, EigVec = np.linalg.eig(L.toarray())
         idx = EigVal.argsort() # increasing order
