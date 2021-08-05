@@ -170,12 +170,12 @@ def eval_epoch(model, loader, criterion, use_cuda=False):
     tic = timer()
     with torch.no_grad():
         for data, mask, pe, lap_pe, degree, labels in loader:
-            if args.lappe:
-                # sign flip as in Bresson et al. for laplacian PE
-                sign_flip = torch.rand(lap_pe.shape[-1])
-                sign_flip[sign_flip >= 0.5] = 1.0
-                sign_flip[sign_flip < 0.5] = -1.0
-                lap_pe = lap_pe * sign_flip.unsqueeze(0)
+            # if args.lappe:
+            #     # sign flip as in Bresson et al. for laplacian PE
+            #     sign_flip = torch.rand(lap_pe.shape[-1])
+            #     sign_flip[sign_flip >= 0.5] = 1.0
+            #     sign_flip[sign_flip < 0.5] = -1.0
+            #     lap_pe = lap_pe * sign_flip.unsqueeze(0)
 
             if use_cuda:
                 data = data.cuda()
