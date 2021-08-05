@@ -13,6 +13,7 @@ class GraphDataset(object):
         self.n_features = dataset[0].x.shape[-1]
         self.pe_list = None
         self.lap_pe_list = None
+        self.lap_pe_dim = None
         self.degree_list = None
         if degree:
             self.compute_degree()
@@ -84,8 +85,8 @@ class GraphDataset(object):
             lap_pos_enc = None
             use_lap_pe = hasattr(batch[0], 'lap_pe') and batch[0].lap_pe is not None
             if use_lap_pe:
-                lap_pe_dim = batch[0].lap_pe.shape[-1]
-                lap_pos_enc = torch.zeros((len(batch), max_len, lap_pe_dim))
+                # lap_pe_dim = batch[0].lap_pe.shape[-1]
+                lap_pos_enc = torch.zeros((len(batch), max_len, self.lap_pe_dim))
 
             degree = None
             use_degree = hasattr(batch[0], 'degree') and batch[0].degree is not None

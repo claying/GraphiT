@@ -173,6 +173,7 @@ class LapEncoding(PositionEncoding):
 
     def apply_to(self, dataset):
         dataset.lap_pe_list = []
+        dataset.lap_pe_dim = self.pos_enc_dim
         for i, g in enumerate(dataset):
             pe = self.compute_pe(g)
             dataset.lap_pe_list.append(pe)
