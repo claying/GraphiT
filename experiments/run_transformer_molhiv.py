@@ -44,19 +44,19 @@ def load_args():
     parser.add_argument('--normalization', choices=[None, 'sym', 'rw'], default='sym',
                         help='normalization for Laplacian')
     parser.add_argument('--dropout', type=float, default=0.0)
-    parser.add_argument('--epochs', type=int, default=500,
+    parser.add_argument('--epochs', type=int, default=200,
                         help='number of epochs')
-    parser.add_argument('--lr', type=float, default=0.001,
+    parser.add_argument('--lr', type=float, default=0.0001,
                         help='initial learning rate')
     parser.add_argument('--batch-size', type=int, default=128,
                         help='batch size')
     parser.add_argument('--outdir', type=str, default='',
                         help='output path')
-    parser.add_argument('--warmup', type=int, default=2000)
+    parser.add_argument('--warmup', type=int, default=None)
     parser.add_argument('--layer-norm', action='store_true', help='use layer norm instead of batch norm')
     parser.add_argument('--zero-diag', action='store_true', help='zero diagonal for PE matrix')
     parser.add_argument('--use-edge-attr', action='store_true', help='use edge features')
-    parser.add_argument('--weight-decay', default=1e-4, type=float, help='weight decay')
+    parser.add_argument('--weight-decay', default=0.01, type=float, help='weight decay')
     args = parser.parse_args()
     args.use_cuda = torch.cuda.is_available()
     args.batch_norm = not args.layer_norm
