@@ -43,8 +43,6 @@ def load_args():
     parser.add_argument('--gckn-pooling', default='sum', choices=['mean', 'sum'])
     parser.add_argument('--gckn-agg', action='store_false', help='do not use aggregated GCKN features')
     parser.add_argument('--gckn-normalize', action='store_false', help='do not normalize gckn features')
-    parser.add_argument('--lappe', action='store_true', help='use laplacian PE')
-    parser.add_argument('--lap-dim', type=int, default=8, help='dimension for laplacian PE')
     parser.add_argument('--p', type=int, default=1, help='p step random walk kernel')
     parser.add_argument('--beta', type=float, default=1.0,
                         help='bandwidth for the diffusion kernel')
@@ -103,7 +101,8 @@ def load_args():
                     os.makedirs(outdir)
                 except Exception:
                     pass
-        lapdir = 'NoPE' if not args.lappe else 'Lap_{}'.format(args.lap_dim) 
+        lapdir = 'gckn_{}_{}_{}_{}_{}_{}'.format(args.gckn_path, args.gckn_dim, args.gckn_sigma, args.gckn_pooling,
+            args.gckn_agg, args.gckn_normalize) 
         outdir = outdir + '/{}'.format(lapdir)
         if not os.path.exists(outdir):
             try:
@@ -136,12 +135,6 @@ def train_epoch(model, loader, criterion, optimizer, lr_scheduler, epoch, use_cu
             iteration = epoch * len(loader) + i
             for param_group in optimizer.param_groups:
                 param_group["lr"] = lr_scheduler(iteration)
-        if args.lappe:
-            # sign flip as in Bresson et al. for laplacian PE
-            sign_flip = torch.rand(lap_pe.shape[-1])
-            sign_flip[sign_flip >= 0.5] = 1.0
-            sign_flip[sign_flip < 0.5] = -1.0
-            lap_pe = lap_pe * sign_flip.unsqueeze(0)
 
         if use_cuda:
             data = data.cuda()
@@ -181,12 +174,6 @@ def eval_epoch(model, loader, criterion, use_cuda=False):
     with torch.no_grad():
         for data, mask, pe, lap_pe, degree, labels in loader:
             labels = labels.float()
-            # if args.lappe:
-            #     # sign flip as in Bresson et al. for laplacian PE
-            #     sign_flip = torch.rand(lap_pe.shape[-1])
-            #     sign_flip[sign_flip >= 0.5] = 1.0
-            #     sign_flip[sign_flip < 0.5] = -1.0
-            #     lap_pe = lap_pe * sign_flip.unsqueeze(0)
 
             if use_cuda:
                 data = data.cuda()
