@@ -189,7 +189,7 @@ def eval_epoch(model, loader, criterion, use_cuda=False):
             output = model(data, mask, pe, lap_pe, degree)
             loss = criterion(output, labels)
             y_true.append(labels.cpu())
-            y_pred.append(output.cpu())
+            y_pred.append(output.sigmoid().cpu())
             
 
             running_loss += loss.item() * len(data)
