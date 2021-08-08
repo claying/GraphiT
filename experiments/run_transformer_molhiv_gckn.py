@@ -297,6 +297,8 @@ def main():
 
     train_dset.lap_pe_list = gckn_pos_enc_values[:len(train_dset)]
     val_dset.lap_pe_list = gckn_pos_enc_values[len(train_dset):len(train_dset)+len(val_dset)]
+    train_dset.lap_pe_dim = gckn_dim
+    val_dset.lap_pe_dim = gckn_dim
 
     if args.pos_enc is not None:
         model = DiffGraphTransformer(in_size=input_size,
@@ -349,6 +351,7 @@ def main():
         pos_encoder.apply_to(test_dset, split='test')
 
     test_dset.lap_pe_list = gckn_pos_enc_values[len(train_dset)+len(val_dset):]
+    test_dset.lap_pe_dim = gckn_dim
 
     print("Training...")
     best_val_score = 0
