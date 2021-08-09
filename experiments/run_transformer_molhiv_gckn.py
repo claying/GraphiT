@@ -110,9 +110,10 @@ def load_args():
             except Exception:
                 pass
         bn = 'BN' if args.batch_norm else 'LN'
-        outdir = outdir + '/{}_{}_{}_{}_{}_{}_{}_{}_{}'.format(
+        outdir = outdir + '/{}_{}_{}_{}_{}_{}_{}_{}_{}_{}'.format(
             args.lr, args.nb_layers, args.nb_heads, args.dim_hidden, bn,
-            args.pos_enc, args.normalization, args.p, args.beta
+            args.pos_enc, args.normalization, args.p, args.beta,
+            args.weight_decay
         )
         if not os.path.exists(outdir):
             try:
